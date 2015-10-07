@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// quickly test each of the alchemy calls
 func ParseKimDavis() string {
 	articleBody, err := alchemy.ParseArticle("test/kimDavisRelease.txt")
 	if err != nil {
@@ -15,7 +16,11 @@ func ParseKimDavis() string {
 
 func TestFetchKeywords(t *testing.T) {
 	articleBody := ParseKimDavis()
-	processed, err := alchemy.RequestKeywords(articleBody)
+	url := alchemy.BuildRequest("Keywords", articleBody)
+
+	processed := alchemy.KeywordsResult{}
+	err := alchemy.Request(url, &processed)
+
 	if err != nil {
 		t.Errorf("could not send request:", err)
 	}
@@ -29,10 +34,13 @@ func TestFetchKeywords(t *testing.T) {
 		t.Errorf("expected top word to be marriage licenses but did not get")
 	}
 }
+
 func TestFetchTaxonomy(t *testing.T) {
 	articleBody := ParseKimDavis()
-	processed, err := alchemy.RequestTaxonomy(articleBody)
-	return
+	url := alchemy.BuildRequest("Taxonomy", articleBody)
+
+	processed := alchemy.TaxonomyResult{}
+	err := alchemy.Request(url, &processed)
 	if err != nil {
 		t.Errorf("could not send request:", err)
 	}
