@@ -25,3 +25,28 @@ func KeywordsFromFile(file *os.File) (KeywordsResult, error) {
 	}
 	return keys, nil
 }
+
+// create a new file and write the data structure into the file
+func MarshalToFile(name string, v interface{}) error {
+
+	body, err := xml.MarshalIndent(v, " ", "  ")
+	if err != nil {
+		fmt.Println("oh nose, could not marshal:", err)
+		return err
+	}
+
+	// TODO: find out why this number is set for file write mode
+	file, err := os.Create(name)
+	if err != nil {
+		fmt.Println("oh nose, could not create file:", err)
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(body)
+	if err != nil {
+		fmt.Println("oh nose, could not write file:", err)
+		return err
+	}
+
+	return nil
+}
