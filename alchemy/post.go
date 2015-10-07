@@ -8,6 +8,17 @@ import (
 	"os"
 )
 
+func GetTaxonomy(data string, t *Taxonomys) error {
+	results := TaxonomyResults{}
+	err := Request(BuildRequest("Taxonomy", data), &results)
+	if err != nil {
+		return err
+	}
+
+	t.Taxonomys = Results.Taxonomys.Taxonomys
+	return nil
+}
+
 // target is what we are after ie Keywords or Taxonomy
 // data is article body
 // you can append on params with "&param=value"

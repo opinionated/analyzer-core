@@ -10,3 +10,7 @@ type Analyzable struct {
 	Taxonomys alchemy.Taxonomys
 	Keywords  alchemy.Keywords
 }
+
+func BuildAnalyzable() Analyzable {
+	return Analyzable{"", alchemy.Taxonomys{}, alchemy.Keywords{}}
+}
