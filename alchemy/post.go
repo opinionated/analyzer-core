@@ -2,14 +2,16 @@ package alchemy
 
 import (
 	"bufio"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 )
 
-func parseArticle(filepath string) (string, error) {
+func ParseArticle(filepath string) (string, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return "", err
@@ -21,39 +23,54 @@ func parseArticle(filepath string) (string, error) {
 	for scanner.Scan() {
 		lines += " " + scanner.Text()
 	}
-	lines = strings.Replace(lines, " ", "%20", -1)
-	// fmt.Println(lines)
 	return lines, nil
 }
 
-func keywordAPI(filepath string, sentiment bool) (string, error) {
-	cmd := "curl"
-	args := []string{"--data", "apikey=39995101e65858870797a627e548b1522f5c74a8", "http://access.alchemyapi.com/calls/text/TextGetRankedKeywords"}
+func RequestKeywords(data string) (KeywordsResult, error) {
+	// build params
+	values := url.Values{}
+	values.Set("apikey", "39995101e65858870797a627e548b1522f5c74a8")
+	values.Add("text", data)
 
-	lines, err := parseArticle(filepath)
+	// build params into url
+	target := "http://gateway-a.watsonplatform.net/calls/text/TextGetRankedKeywords"
+	target = target + "?" + values.Encode()
+
+	// build request
+	request, err := http.NewRequest("POST", target, nil)
 	if err != nil {
-		return "", err
-	}
-	args[1] += "&text=" + lines
+		fmt.Println("error creating request:", err)
+		return KeywordsResult{}, err
 
-	if sentiment {
-		args[1] += "&sentiment=1"
 	}
 
-	// fmt.Println(args[1])
-	out, err := exec.Command(cmd, args...).Output()
+	// send request
+	client := &http.Client{}
+	response, err := client.Do(request)
 	if err != nil {
-		os.Exit(1)
-		return "", err
+		fmt.Println("error making request:", err)
+		return KeywordsResult{}, err
 	}
-	return string(out), nil
+	defer response.Body.Close()
+
+	// read request results into KeywordsResults struct
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("err reading body:", err)
+		return KeywordsResult{}, err
+	}
+
+	keywords := KeywordsResult{}
+	err = xml.Unmarshal(body, &keywords)
+
+	return keywords, nil
 }
 
 func taxonomyAPI(filepath string) (string, error) {
 	cmd := "curl"
 	args := []string{"--data", "apikey=39995101e65858870797a627e548b1522f5c74a8", "http://gateway-a.watsonplatform.net/calls/text/TextGetRankedTaxonomy"}
 
-	lines, err := parseArticle(filepath)
+	lines, err := ParseArticle(filepath)
 	if err != nil {
 		return "", err
 	}
@@ -69,23 +86,24 @@ func taxonomyAPI(filepath string) (string, error) {
 }
 
 func main() {
-	keyxmlpath := "testkeyword.xml"
-	xml1, err := keywordAPI("./samplebody.txt", false)
-	if err != nil {
-		panic(err)
-	}
-	// fmt.Println(xml1)
-	err = ioutil.WriteFile(keyxmlpath, []byte(xml1), 0644)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("wrote keyword xml to " + keyxmlpath)
+	/*	keyxmlpath := "testkeyword.xml"
+		xml1, err := keywordAPI("./samplebody.txt", false)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println(xml1)
+		err = ioutil.WriteFile(keyxmlpath, []byte(xml1), 0644)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("wrote keyword xml to " + keyxmlpath)
 
-	// xml2, err := taxonomyAPI("./samplebody.txt")
-	// if(err != nil){
-	//     fmt.Println(err)
-	// }
-	// fmt.Println(xml2)
+		// xml2, err := taxonomyAPI("./samplebody.txt")
+		// if(err != nil){
+		//     fmt.Println(err)
+		// }
+		// fmt.Println(xml2)
+	*/
 }
 
 // key 39995101e65858870797a627e548b1522f5c74a8
