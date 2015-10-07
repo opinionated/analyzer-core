@@ -24,3 +24,17 @@ type KeywordsResult struct {
 }
 
 // structures for taxonomy
+type Taxonomy struct {
+	Label string  `xml:"label"`
+	Score float32 `xml:"score"`
+}
+
+type Taxonomys struct {
+	Taxonomys []Taxonomy `xml:"element"`
+}
+
+type TaxonomyResult struct {
+	XMLName   xml.Name  `xml:"results"`
+	Status    string    `xml:"status"`
+	Taxonomys Taxonomys `xml:"taxonomy"`
+}

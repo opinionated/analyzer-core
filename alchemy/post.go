@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 )
 
 func ParseArticle(filepath string) (string, error) {
@@ -26,6 +25,8 @@ func ParseArticle(filepath string) (string, error) {
 	return lines, nil
 }
 
+// request keywords from the alchemy natural language API
+// data is the article body
 func RequestKeywords(data string) (KeywordsResult, error) {
 	// build params
 	values := url.Values{}
@@ -62,27 +63,58 @@ func RequestKeywords(data string) (KeywordsResult, error) {
 
 	keywords := KeywordsResult{}
 	err = xml.Unmarshal(body, &keywords)
+	if err != nil {
+		fmt.Println("oh nose, err unmarshalling keywords")
+		return KeywordsResult{}, err
+	}
 
 	return keywords, nil
 }
 
-func taxonomyAPI(filepath string) (string, error) {
-	cmd := "curl"
-	args := []string{"--data", "apikey=39995101e65858870797a627e548b1522f5c74a8", "http://gateway-a.watsonplatform.net/calls/text/TextGetRankedTaxonomy"}
+// request taxonomies from the alchemy natural language API
+// data is the article body
+func RequestTaxonomy(data string) (TaxonomyResult, error) {
+	// build params
+	values := url.Values{}
+	values.Set("apikey", "39995101e65858870797a627e548b1522f5c74a8")
+	values.Add("text", data)
 
-	lines, err := ParseArticle(filepath)
-	if err != nil {
-		return "", err
-	}
-	args[1] += "&text=" + lines
+	// build params into url
+	target := "http://gateway-a.watsonplatform.net/calls/text/TextGetRankedTaxonomy"
+	target = target + "?" + values.Encode()
 
-	fmt.Println(args[1])
-	out, err := exec.Command(cmd, args...).Output()
+	// build request
+	request, err := http.NewRequest("POST", target, nil)
 	if err != nil {
-		os.Exit(1)
-		return "", err
+		fmt.Println("error creating request:", err)
+		return TaxonomyResult{}, err
+
 	}
-	return string(out), nil
+
+	// send request
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		fmt.Println("error making request:", err)
+		return TaxonomyResult{}, err
+	}
+	defer response.Body.Close()
+
+	// read request results into TaxonomyResults struct
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("err reading body:", err)
+		return TaxonomyResult{}, err
+	}
+
+	taxonomy := TaxonomyResult{}
+	err = xml.Unmarshal(body, &taxonomy)
+	if err != nil {
+		fmt.Println("oh nose, err unmarshalling taxonomy")
+		return TaxonomyResult{}, err
+	}
+
+	return TaxonomyResult{}, nil
 }
 
 func main() {
