@@ -95,4 +95,4 @@ func ParseArticle(filepath string) (string, error) {
 
 // key 39995101e65858870797a627e548b1522f5c74a8
 // curl --data "apikey=39995101e65858870797a627e548b1522f5c74a8&text=hello%20my%20name%20is%20test" http://access.alchemyapi.com/calls/text/TextGetRankedKeywords
-// http://www.alchemyapi.com/api/keyword/textc.html
+// gateway http://gateway-a.watsonplatform.net/calls/text/TextGetRanked
