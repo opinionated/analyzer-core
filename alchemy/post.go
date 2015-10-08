@@ -8,14 +8,25 @@ import (
 	"os"
 )
 
-func GetTaxonomy(data string, t *Taxonomys) error {
-	results := TaxonomyResults{}
-	err := Request(BuildRequest("Taxonomy", data), &results)
+func GetKeywords(data string, t *Keywords) error {
+	result := KeywordsResult{}
+	err := Request(BuildRequest("Keywords", data), &result)
 	if err != nil {
 		return err
 	}
 
-	t.Taxonomys = Results.Taxonomys.Taxonomys
+	t.Keywords = result.Keywords.Keywords
+	return nil
+}
+
+func GetTaxonomy(data string, t *Taxonomys) error {
+	result := TaxonomyResult{}
+	err := Request(BuildRequest("Taxonomy", data), &result)
+	if err != nil {
+		return err
+	}
+
+	t.Taxonomys = result.Taxonomys.Taxonomys
 	return nil
 }
 
