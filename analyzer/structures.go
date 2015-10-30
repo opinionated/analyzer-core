@@ -10,6 +10,7 @@ type Analyzable struct {
 	FileName  string
 	Taxonomys alchemy.Taxonomys
 	Keywords  alchemy.Keywords
+	score     float64
 }
 
 func BuildAnalyzable() Analyzable {
