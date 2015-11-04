@@ -14,5 +14,5 @@ type Analyzable struct {
 }
 
 func BuildAnalyzable() Analyzable {
-	return Analyzable{"", "", alchemy.Taxonomys{}, alchemy.Keywords{}}
+	return Analyzable{"", "", alchemy.Taxonomys{}, alchemy.Keywords{}, 0.0}
 }
