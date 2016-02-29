@@ -19,7 +19,7 @@ Alchemy is free and extracts a lot of data from articles:
 
 See a live demo [here](http://www.alchemyapi.com/products/demo/alchemylanguage). 
 
-One issue with alchemy is that we need to do the relationship strengths ourselves. There is a request factory as well as a parser/filewriter in the code for alchemy. 
+One issue with alchemy is that we need to do the inter-data (ie strength of soccer->iraq war) relationship strengths ourselves. There is a request factory as well as a parser/filewriter in the code for alchemy. 
 
 #####IBM Bluemix
 Bluemix provides powerful machine learning tools as well as some interesting pre-canned tools:
