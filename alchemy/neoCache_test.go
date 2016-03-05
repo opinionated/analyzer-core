@@ -1,7 +1,7 @@
 package alchemy_test
 
 import (
-	"github.com/analyzer-core/alchemy"
+	"github.com/opinionated/analyzer-core/alchemy"
 	"testing"
 )
 
@@ -9,7 +9,7 @@ func TestGetHash(t *testing.T) {
 	a := "one"
 	b := "two"
 
-	cache := pipeline.Neo4jCache{}
+	cache := alchemy.Neo4jCache{}
 	cache.Setup()
 
 	if _, has := cache.Get(a, b); has {
