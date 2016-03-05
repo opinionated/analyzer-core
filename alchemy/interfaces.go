@@ -38,3 +38,48 @@ type TaxonomyResult struct {
 	Status    string    `xml:"status"`
 	Taxonomys Taxonomys `xml:"taxonomy"`
 }
+
+type EntitySentiment struct {
+	Sentiment float32 `xml:"score"`
+}
+
+type EntityDisambiguated struct {
+	Name     string   `xml:"name"`
+	Subtypes []string `xml:"subType"`
+}
+
+// structures for entities
+type Entity struct {
+	Type          string                `xml:"type"`
+	Relevance     float32               `xml:"relevance"`
+	Sentiment     EntitySentiment       `xml:"sentiment"`
+	Count         float32               `xml:"count"`
+	Text          string                `xml:"text"`
+	Disambiguated []EntityDisambiguated `xml:"disambiguated"`
+}
+
+type Entities struct {
+	Entities []Entity `xml:"entities"`
+}
+
+type EntitiesResult struct {
+	XMLName  xml.Name `xml:"results"`
+	Status   string   `xml:"status"`
+	Entities Entities `xml:"entities"`
+}
+
+// structures for concepts
+type Concept struct {
+	Text      string  `xml:"text"`
+	Relevance float32 `xml:"relevance"`
+}
+
+type Concepts struct {
+	Concepts []Concept `xml:"concepts"`
+}
+
+type ConceptResult struct {
+	XMLName  xml.Name `xml:"results"`
+	Status   string   `xml:"status"`
+	Concepts Concepts `xml:"Concepts"`
+}
