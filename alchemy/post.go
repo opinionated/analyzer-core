@@ -10,7 +10,11 @@ import (
 
 func GetKeywords(data string, t *Keywords) error {
 	result := KeywordsResult{}
-	err := Request(BuildRequest("Keywords", data), &result)
+	response, err := Request(BuildRequest("Keywords", data))
+	if err != nil {
+		return err
+	}
+	err = ConvertResponseXML(response, &result)
 	if err != nil {
 		return err
 	}
@@ -21,14 +25,32 @@ func GetKeywords(data string, t *Keywords) error {
 
 func GetTaxonomy(data string, t *Taxonomys) error {
 	result := TaxonomyResult{}
-	err := Request(BuildRequest("Taxonomy", data), &result)
+	response, err := Request(BuildRequest("Taxonomy", data))
 	if err != nil {
 		return err
 	}
+	err = ConvertResponseXML(response, &result)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Result:", result)
 
 	t.Taxonomys = result.Taxonomys.Taxonomys
 	return nil
 }
+
+/*
+func GetEntities(data string, e *Entities) error {
+	result := EntityResult{}
+	_, err := Request(BuildRequest("Entity", data), &result)
+	if err != nil {
+		return err
+	}
+
+	e.Entities = result.Entities.Entities
+	return nil
+}
+*/
 
 // target is what we are after ie Keywords or Taxonomy
 // data is article body
@@ -48,14 +70,13 @@ func BuildRequest(target, data string) string {
 
 // general request format
 // create url using the BuildRequest method
-// pass the target struct by reference in v
-func Request(url string, v interface{}) error {
+// Return raw response
+func Request(url string) (*http.Response, error) {
 	// build request
 	request, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		fmt.Println("error creating request:", err)
-		return err
-
+		return nil, err
 	}
 
 	// send request
@@ -63,17 +84,19 @@ func Request(url string, v interface{}) error {
 	response, err := client.Do(request)
 	if err != nil {
 		fmt.Println("error making request:", err)
-		return err
+		return nil, err
 	}
-	defer response.Body.Close()
 
+	return response, nil
+}
+
+func ConvertResponseXML(response *http.Response, v interface{}) error {
 	// convert to the type we are after
-	err = ToXML(response.Body, v)
+	err := ToXML(response.Body, v)
 	if err != nil {
-		fmt.Println("wouldn't let it convert:", err)
+		fmt.Println("Conversion Failed: ", err)
 		return err
 	}
-
 	return nil
 }
 

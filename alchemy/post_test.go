@@ -1,6 +1,7 @@
 package alchemy_test
 
 import (
+	"fmt"
 	"github.com/opinionated/analyzer-core/alchemy"
 	"testing"
 )
@@ -16,21 +17,15 @@ func ParseKimDavis() string {
 
 func TestFetchKeywords(t *testing.T) {
 	articleBody := ParseKimDavis()
-	url := alchemy.BuildRequest("Keywords", articleBody)
 
-	processed := alchemy.KeywordsResult{}
-	err := alchemy.Request(url, &processed)
+	processed := alchemy.Keywords{}
+	err := alchemy.GetKeywords(articleBody, &processed)
 
 	if err != nil {
 		t.Errorf("could not send request:", err)
 	}
 
-	// test that we got what we expected
-	if processed.Status != "OK" {
-		t.Errorf("expected status OK")
-	}
-
-	if processed.Keywords.Keywords[0].Text != "marriage licenses" {
+	if processed.Keywords[0].Text != "marriage licenses" {
 		t.Errorf("expected top word to be marriage licenses but did not get")
 	}
 }
@@ -39,18 +34,19 @@ func TestFetchTaxonomy(t *testing.T) {
 	articleBody := ParseKimDavis()
 	url := alchemy.BuildRequest("Taxonomy", articleBody)
 
-	processed := alchemy.TaxonomyResult{}
-	err := alchemy.Request(url, &processed)
+	processed := alchemy.Taxonomys{}
+	response, err := alchemy.Request(url)
+
+	if err != nil {
+		t.Errorf("invalid response:", err)
+	}
+	err = alchemy.ConvertResponseXML(response, &processed)
 	if err != nil {
 		t.Errorf("could not send request:", err)
 	}
 
-	// test that we got what we expected
-	if processed.Status != "OK" {
-		t.Errorf("expected status OK")
-	}
-
-	if processed.Taxonomys.Taxonomys[0].Label != "/society/social institution/marriage" {
+	fmt.Println(processed.Taxonomys)
+	if processed.Taxonomys[0].Label != "/society/social institution/marriage" {
 		t.Errorf("expected top word to be marriage licenses but did not get")
 	}
 }
