@@ -9,33 +9,33 @@ import (
 
 // keyQuery and taxQuery store the same information, differentiation is so search-field can be implicit
 type KeyQuery struct {
-	Text      string
+	Text	  string
 	Sentiment string
 	Threshold float32
 }
 
 type TaxQuery struct {
-	Name      string
+	Name	  string
 	Sentiment string
 	Threshold float32
 }
 
 type DBKeyword struct {
-	Text      string  `json:"text"`
+	Text	  string  `json:"text"`
 	Sentiment string  `json:"sentiment,omitempty"`
 	Relevance float32 `json:"relevance,omitempty"`
 }
 
 type DBTaxonomy struct {
-	Label     string  `json:"label"`
+	Label	 string  `json:"label"`
 	Sentiment string  `json:"sentiment"`
-	Score     float32 `json:"score,omitempty"`
+	Score	 float32 `json:"score,omitempty"`
 }
 
 type ArticleInfo struct {
-	ID         int          `json:"ID,omitempty"`
-	Author     string       `json:"Author,omitempty"`
-	Body       string       `json:"BodyFilename"`
+	ID		 int		  `json:"ID,omitempty"`
+	Author	 string	   `json:"Author,omitempty"`
+	Body	   string	   `json:"BodyFilename"`
 	Keywords   []DBKeyword  `json:"Keywords,omitempty"`
 	Taxonomies []DBTaxonomy `json:"Taxonomies,omitempty"`
 }
@@ -47,13 +47,13 @@ func store(info ArticleInfo) error {
 
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
-    if err != nil {
-        return err //oh no!
-    }
-    defer db.Close()
+	if err != nil {
+		return err //oh no!
+	}
+	defer db.Close()
 
 	//create query, use prepared statements
-    stmt, err := db.Prepare(`
+	stmt, err := db.Prepare(`
 		UNWIND {{0}} as article
 		MERGE (a:Article {id:article.ID, body:article.Body, author:article.Body})
 		FOREACH (kw IN article.Keywords |
@@ -63,9 +63,9 @@ func store(info ArticleInfo) error {
 		   MERGE (t)-[:TAXONOMY_OF {sentiment:kw.Sentiment, score:kw.Score}]->(a)
 		)
 	`)
-    if err != nil {
-        return err //oops
-    }
+	if err != nil {
+		return err //oops
+	}
 	defer stmt.close()
 
 	//pass in the json object to be unwound and execute the statement
