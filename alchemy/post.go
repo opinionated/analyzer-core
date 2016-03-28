@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// GetKeywords from alchemy
 func GetKeywords(data string, t *Keywords) error {
 	result := KeywordsResult{}
 	err := Request(BuildRequest("Keywords", data), &result)
@@ -19,17 +20,31 @@ func GetKeywords(data string, t *Keywords) error {
 	return nil
 }
 
-func GetTaxonomy(data string, t *Taxonomys) error {
+// GetTaxonomy from alchemy
+func GetTaxonomy(data string) (TaxonomyResult, error) {
 	result := TaxonomyResult{}
 	err := Request(BuildRequest("Taxonomy", data), &result)
-	if err != nil {
-		return err
-	}
 
-	t.Taxonomys = result.Taxonomys.Taxonomys
-	return nil
+	return result, err
 }
 
+// GetEntities from a file
+func GetEntities(data string) (EntityResult, error) {
+	result := EntityResult{}
+	err := Request(BuildRequest("NamedEntities", data), &result)
+
+	return result, err
+}
+
+// GetConcepts from a file
+func GetConcepts(data string) (ConceptResult, error) {
+	result := ConceptResult{}
+	err := Request(BuildRequest("Concepts", data), &result)
+
+	return result, err
+}
+
+// BuildRequest for alchemy data.
 // target is what we are after ie Keywords or Taxonomy
 // data is article body
 // you can append on params with "&param=value"
@@ -46,6 +61,7 @@ func BuildRequest(target, data string) string {
 	return ret
 }
 
+// Request the alchemy data
 // general request format
 // create url using the BuildRequest method
 // pass the target struct by reference in v
@@ -77,6 +93,7 @@ func Request(url string, v interface{}) error {
 	return nil
 }
 
+// ParseArticle from a file
 // used largely for testing, parses an article from a file
 func ParseArticle(filepath string) (string, error) {
 	file, err := os.Open(filepath)
