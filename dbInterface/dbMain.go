@@ -21,21 +21,21 @@ type TaxQuery struct {
 }
 
 type DBKeyword struct {
-	Text      string  `json:"text"`
+	Text	  string  `json:"text"`
 	Sentiment string  `json:"sentiment,omitempty"`
 	Relevance float32 `json:"relevance,omitempty"`
 }
 
 type DBTaxonomy struct {
-	Label     string  `json:"label"`
+	Label	 string  `json:"label"`
 	Sentiment string  `json:"sentiment"`
-	Score     float32 `json:"score,omitempty"`
+	Score	 float32 `json:"score,omitempty"`
 }
 
 type ArticleInfo struct {
-	ID         int          `json:"ID,omitempty"`
-	Author     string       `json:"Author,omitempty"`
-	Body       string       `json:"BodyFilename"`
+	ID		 int		  `json:"ID,omitempty"`
+	Author	 string	   `json:"Author,omitempty"`
+	Body	   string	   `json:"BodyFilename"`
 	Keywords   []DBKeyword  `json:"Keywords,omitempty"`
 	Taxonomies []DBTaxonomy `json:"Taxonomies,omitempty"`
 }

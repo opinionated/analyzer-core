@@ -40,7 +40,8 @@ type TaxonomyResult struct {
 }
 
 type EntitySentiment struct {
-	Sentiment float32 `xml:"score"`
+	// for whatever reason entity sentiment is not working.
+	Score float32 `xml:"score"`
 }
 
 type EntityDisambiguated struct {
@@ -52,17 +53,19 @@ type EntityDisambiguated struct {
 type Entity struct {
 	Type          string                `xml:"type"`
 	Relevance     float32               `xml:"relevance"`
-	Sentiment     EntitySentiment       `xml:"sentiment"`
 	Count         float32               `xml:"count"`
 	Text          string                `xml:"text"`
 	Disambiguated []EntityDisambiguated `xml:"disambiguated"`
+
+	// sentiment wouldn't work and it doesn't seem like it's that important
+	//Sentiment     EntitySentiment       `xml:"sentiment"`
 }
 
 type Entities struct {
-	Entities []Entity `xml:"entities"`
+	Entities []Entity `xml:"entity"`
 }
 
-type EntitiesResult struct {
+type EntityResult struct {
 	XMLName  xml.Name `xml:"results"`
 	Status   string   `xml:"status"`
 	Entities Entities `xml:"entities"`
@@ -75,11 +78,11 @@ type Concept struct {
 }
 
 type Concepts struct {
-	Concepts []Concept `xml:"concepts"`
+	Concepts []Concept `xml:"concept"`
 }
 
 type ConceptResult struct {
 	XMLName  xml.Name `xml:"results"`
 	Status   string   `xml:"status"`
-	Concepts Concepts `xml:"Concepts"`
+	Concepts Concepts `xml:"concepts"`
 }
