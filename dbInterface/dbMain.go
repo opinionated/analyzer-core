@@ -3,8 +3,9 @@ package dbInterface
 import (
 	"database/sql"
 	"encoding/json"
-	_ "github.com/go-cq/cq"
-	_ "github.com/satori/go.uuid"
+	"fmt"
+	"github.com/satori/go.uuid"
+	_ "gopkg.in/cq.v1"
 )
 
 // keyQuery and taxQuery store the same information, differentiation is so search-field can be implicit
@@ -21,21 +22,21 @@ type TaxQuery struct {
 }
 
 type DBKeyword struct {
-	Text	  string  `json:"text"`
+	Text      string  `json:"text"`
 	Sentiment string  `json:"sentiment,omitempty"`
 	Relevance float32 `json:"relevance,omitempty"`
 }
 
 type DBTaxonomy struct {
-	Label	 string  `json:"label"`
+	Label     string  `json:"label"`
 	Sentiment string  `json:"sentiment"`
-	Score	 float32 `json:"score,omitempty"`
+	Score     float32 `json:"score,omitempty"`
 }
 
 type ArticleInfo struct {
-	ID		 int		  `json:"ID,omitempty"`
-	Author	 string	   `json:"Author,omitempty"`
-	Body	   string	   `json:"BodyFilename"`
+	ID         uuid.UUID    `json:"ID,omitempty"`
+	Author     string       `json:"Author,omitempty"`
+	Body       string       `json:"BodyFilename"`
 	Keywords   []DBKeyword  `json:"Keywords,omitempty"`
 	Taxonomies []DBTaxonomy `json:"Taxonomies,omitempty"`
 }
@@ -52,13 +53,13 @@ func (e *IDError) Error() string {
 
 //Initialize ?figure out what goes here
 func Init() error {
-
+	return nil
 }
 
 //Don't need the driver for this, just using normal SQL calls
 func Store(info ArticleInfo) error {
 	//create uuid for article
-	info.id = uuid.NewV4()
+	info.ID = uuid.NewV4()
 
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
@@ -81,13 +82,13 @@ func Store(info ArticleInfo) error {
 	if err != nil {
 		return err //oops
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//pass in the json object to be unwound and execute the statement
-	_, err := stmt.Exec(info)
+	_, err2 := stmt.Exec(info)
 
 	//no error = nil
-	return err
+	return err2
 }
 
 /**
@@ -95,7 +96,7 @@ func Store(info ArticleInfo) error {
  * @return error, in case of error
  * Remove article w/ id from database
  */
-func Remove(id UUID) error {
+func Remove(id uuid.UUID) error {
 
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
@@ -113,14 +114,14 @@ func Remove(id UUID) error {
 	if err != nil {
 		return err //Wat r u tryina remove dawg?
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//Unwind json object and execute query
-	_, err := stmt.Exec(id)
+	_, err2 := stmt.Exec(id)
 	//JUST DO IT^^^
 
 	//no error = nil
-	return err
+	return err2
 
 }
 
@@ -128,6 +129,7 @@ func Remove(id UUID) error {
  * DB reset, for testing purposes !!!DONT USE UNLESS YOU'RE SERIOUSLY ARE SURE ABOUT THIS!!!
  */
 func RemoveAll() error {
+
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
 	if err != nil {
@@ -143,14 +145,14 @@ func RemoveAll() error {
 	if err != nil {
 		return err //Wat r u tryina remove dawg?
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//Execute query
-	_, err := stmt.Exec()
+	_, err2 := stmt.Exec()
 	//JUST DO IT^^^
 
 	//no error = nil
-	return err
+	return err2
 
 }
 
@@ -160,12 +162,13 @@ func RemoveAll() error {
  * @return error, in case of error, or multiple articles listed under id
  * Gets article w/ id from database
  */
-func Get(id UUID) (ArticleInfo, error) {
+func Get(id uuid.UUID) (ArticleInfo, error) {
 
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
 	if err != nil {
-		return _, err //Could not open!
+		var empty ArticleInfo
+		return empty, err //Could not open!
 	}
 	defer db.Close()
 
@@ -176,34 +179,39 @@ func Get(id UUID) (ArticleInfo, error) {
 		RETURN article
 	`)
 	if err != nil {
-		return _, err //Wat r u tryina git dawg?
+		var empty ArticleInfo
+		return empty, err //Wat r u tryina git dawg?
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//Execute query
 	ret, err := stmt.Query(id)
 	//JUST DO IT^^^
 	if err != nil {
-		return _, err //Something went wrong!!!
+		var empty ArticleInfo
+		return empty, err //Something went wrong!!!
 	}
-	defer ret.close()
+	//defer ret.close()
 
 	//pull all articles and decode. Return the first (SHOULD NOT BE MORE THAN 1, return error otherwise)
 	var article ArticleInfo
 	var articleJSON []byte
-	err := rows.Scan(&(articleJSON))
-	if err != nil {
-		return _, err //this one is weird
+	err2 := ret.Scan(&(articleJSON))
+	if err2 != nil {
+		var empty ArticleInfo
+		return empty, err2 //this one is weird
 	}
 	//DECODE json object
-	err := json.Unmarshal(articleJSON, &article)
-	if err != nil {
-		return _, err
+	err3 := json.Unmarshal(articleJSON, &article)
+	if err3 != nil {
+		var empty ArticleInfo
+		return empty, err3
 	}
 
 	//Should not be any more rows, if there are return IDError on id
-	for rows.Next() {
-		return _, &IDError{id.String(), "Multiple entries in database for this ID!!"}
+	for ret.Next() {
+		var empty ArticleInfo
+		return empty, &IDError{id.String(), "Multiple entries in database for this ID!!"}
 	}
 
 	//no error = nil
@@ -217,17 +225,14 @@ func Get(id UUID) (ArticleInfo, error) {
  * @return error, in case of error
  * Gets article ids w/ keyword from database
  */
-func SearchByKeyword(keyword DBKeyword) ([]UUID, error) {
+func SearchByKeyword(keyword KeyQuery) ([]uuid.UUID, error) {
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
 	if err != nil {
-		return _, err //Could not open!
+		var empty []uuid.UUID
+		return empty, err //Could not open!
 	}
 	defer db.Close()
-
-	if keyword.Threshold := nil {
-		keyword.Threshold = 0
-	}
 
 	//Create query
 	stmt, err := db.Prepare(`
@@ -236,30 +241,34 @@ func SearchByKeyword(keyword DBKeyword) ([]UUID, error) {
 		RETURN article.ID
 	`)
 	if err != nil {
-		return _, err //Wat r u tryina git dawg?
+		var empty []uuid.UUID
+		return empty, err //Wat r u tryina git dawg?
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//Execute query
-	ret, err := stmt.Query(id)
+	ret, err := stmt.Query(keyword)
 	//JUST DO IT^^^
 	if err != nil {
-		return _, err //Something went wrong!!!
+		var empty []uuid.UUID
+		return empty, err //Something went wrong!!!
 	}
-	defer ret.close()
+	//defer ret.close()
 
 	//pull all articles and decode. Return the slice with all of them in it
-	var aID UUID
+	var aID uuid.UUID
 	var idJSON []byte
-	var set []UUID
-	for rows.Next() {
-		err := rows.Scan(&(idJSON)) //scan
+	var set []uuid.UUID
+	for ret.Next() {
+		err := ret.Scan(&(idJSON)) //scan
 		if err != nil {
-			return _, err //this one is weird
+			var empty []uuid.UUID
+			return empty, err //this one is weird
 		}
-		err := json.Unmarshal(idJSON, &aID) //decode
-		if err != nil {
-			return _, err //more ways it can be weird
+		err2 := json.Unmarshal(idJSON, &aID) //decode
+		if err2 != nil {
+			var empty []uuid.UUID
+			return empty, err2 //more ways it can be weird
 		}
 		set = append(set, aID) //append
 	}
@@ -274,17 +283,14 @@ func SearchByKeyword(keyword DBKeyword) ([]UUID, error) {
  * @return error, in case of error
  * Gets article ids w/ keyword from database
  */
-func SearchByTaxonomy(taxonomy DBTaxonomy) ([]UUID, error) {
+func SearchByTaxonomy(taxonomy TaxQuery) ([]uuid.UUID, error) {
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
 	if err != nil {
-		return _, err //Could not open!
+		var empty []uuid.UUID
+		return empty, err //Could not open!
 	}
 	defer db.Close()
-
-	if taxonomy.Threshold := nil {
-		taxonomy.Threshold = 0
-	}
 
 	//Create query
 	stmt, err := db.Prepare(`
@@ -293,30 +299,34 @@ func SearchByTaxonomy(taxonomy DBTaxonomy) ([]UUID, error) {
 		RETURN article.ID
 	`)
 	if err != nil {
-		return _, err //Wat r u tryina git dawg?
+		var empty []uuid.UUID
+		return empty, err //Wat r u tryina git dawg?
 	}
-	defer stmt.close()
+	//defer stmt.close()
 
 	//Execute query
-	ret, err := stmt.Query(id)
+	ret, err := stmt.Query(taxonomy)
 	//JUST DO IT^^^
 	if err != nil {
-		return _, err //Something went wrong!!!
+		var empty []uuid.UUID
+		return empty, err //Something went wrong!!!
 	}
-	defer ret.close()
+	//defer ret.close()
 
 	//pull all articles and decode. Return the slice with all of them in it
-	var aID UUID
+	var aID uuid.UUID
 	var idJSON []byte
-	var set []UUID
-	for rows.Next() {
-		err := rows.Scan(&(idJSON)) //scan
+	var set []uuid.UUID
+	for ret.Next() {
+		err := ret.Scan(&(idJSON)) //scan
 		if err != nil {
-			return _, err //this one is weird
+			var empty []uuid.UUID
+			return empty, err //this one is weird
 		}
-		err := json.Unmarshal(idJSON, &aID) //decode
-		if err != nil {
-			return _, err //more ways it can be weird
+		err2 := json.Unmarshal(idJSON, &aID) //decode
+		if err2 != nil {
+			var empty []uuid.UUID
+			return empty, err2 //more ways it can be weird
 		}
 		set = append(set, aID) //append
 	}
