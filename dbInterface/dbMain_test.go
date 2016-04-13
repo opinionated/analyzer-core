@@ -18,7 +18,7 @@ type Relation struct {
 func TestMultiInsert(t *testing.T) {
 	assert.Nil(t, Open("http://localhost:7474/"))
 	//defer finishTest()
-	clear()
+	assert.Nil(t, clear())
 
 	var _ = []string{
 		"z", "1.0",
@@ -30,7 +30,6 @@ func TestMultiInsert(t *testing.T) {
 
 	assert.Nil(t, Store("n"))
 	assert.Nil(t, InsertRelations("n", "one", relations))
-
 }
 
 func TestInsert(t *testing.T) {

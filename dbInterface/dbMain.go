@@ -142,9 +142,10 @@ func InsertRelations(articleID string, keyword string, values interface{}) error
 
 	cq := neoism.CypherQuery{
 		Statement: `
+			match (start:Article {Identifier: {articleID}})
 			unwind {relations} as relations
 			foreach (relation in relations | 
-			create (:Relation {Text: relation.Text})
+			create unique (start)-[:Relation {Relevance: relation.Relevance}]-(:Keyword {Text: relation.Text})
 			)
 	`,
 		Parameters: neoism.Props{"articleID": articleID, "keyword": keyword, "relations": values},
@@ -194,11 +195,12 @@ func InsertRelations(articleID string, keyword string, values interface{}) error
 // clear deletes all nodes from teh db, used most for testing
 func clear() error {
 	cq := neoism.CypherQuery{
-		Statement: "match n delete n",
+		Statement: `
+		match (node) optional match (node)-[edge]-() 
+		delete node, edge`,
 	}
 
 	return db.Cypher(&cq)
-
 }
 
 /*
