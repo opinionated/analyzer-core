@@ -15,6 +15,75 @@ type Relation struct {
 	Relevance float32
 }
 
+var testGraph = []struct {
+	node      string
+	relations []Relation
+}{
+	{
+		"gunsRgreat",
+		[]Relation{
+			{"guns", 3.0},
+			{"knife massacres", 2.0},
+			{"carrots", 0.5},
+			{"terroists", 1.5},
+			{"hunting", 2.5},
+			{"2nd ammendment", 3.0},
+		},
+	},
+	{
+		"gunsBad",
+		[]Relation{
+			{"guns", 2.0},
+			{"kids", 4.0},
+			{"carrots", 1.5},
+		},
+	},
+	{
+		"obama hitler",
+		[]Relation{
+			{"kenya", 4.0},
+			{"hunting", 1.0},
+			{"guns", 1.5},
+			{"muslim", 3.0},
+			{"terrorists", 2.5},
+			{"2nd ammendment", 2.0},
+		},
+	},
+	{
+		"disconnected from everything",
+		[]Relation{},
+	},
+}
+
+func setupTestGraph(t *testing.T) {
+	clear()
+	for i := range testGraph {
+		article := testGraph[i]
+		assert.Nil(t, Store(article.node))
+		assert.Nil(t, InsertRelations(article.node, "keywords", article.relations))
+	}
+}
+
+func TestShortestPath(t *testing.T) {
+	assert.Nil(t, Open("http://localhost:7474/"))
+	setupTestGraph(t)
+
+	info, err := GetByUUID("gunsBad")
+	assert.Nil(t, err)
+	assert.Equal(t, "gunsBad", info.Identifier)
+
+	score, count, err := StrengthBetween("gunsRgreat", "obama hitler", "keywords")
+	assert.Nil(t, err)
+	assert.EqualValues(t, 13.0, score)
+	assert.EqualValues(t, 3, count)
+
+	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "keywords")
+	assert.Nil(t, err)
+	assert.EqualValues(t, 0.0, score)
+	assert.EqualValues(t, 0, count)
+
+}
+
 func TestMultiInsert(t *testing.T) {
 	assert.Nil(t, Open("http://localhost:7474/"))
 	//defer finishTest()
