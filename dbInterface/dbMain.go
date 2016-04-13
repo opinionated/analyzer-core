@@ -139,7 +139,22 @@ func GetByUUID(articleID string) (ArticleInfo, error) {
 // InsertRelations inserts an array of relations named by keyword
 // assumes that values has Text, Relevance
 func InsertRelations(articleID string, keyword string, values interface{}) error {
+
+	cq := neoism.CypherQuery{
+		Statement: `
+			unwind {relations} as relations
+			foreach (relation in relations | 
+			create (:Relation {Text: relation.Text})
+			)
+	`,
+		Parameters: neoism.Props{"articleID": articleID, "keyword": keyword, "relations": values},
+	}
+
+	// create unique (start:Article {Identifier:{articleID})-[b:Relation]-(end:{keyword} {Text: relation.Text})
+	err := db.Cypher(&cq)
+	return err
 	/*
+
 		stmt, err := db.Prepare(`
 		foreach (edge in {0} |
 			merge( :Node {txt: edge.Text})
@@ -172,8 +187,8 @@ func InsertRelations(articleID string, keyword string, values interface{}) error
 			}
 			fmt.Println("data:", data)
 		}
+		return nil
 	*/
-	return nil
 }
 
 // clear deletes all nodes from teh db, used most for testing

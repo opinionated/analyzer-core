@@ -25,12 +25,11 @@ func TestMultiInsert(t *testing.T) {
 	}
 	var relations = []Relation{
 		{"x", 1.0},
+		{"y", 1.0},
 	}
 
-	//assert.Nil(t, Store("n"))
-	//assert.Nil(t, InsertRelations("n", "one", arr))
-
-	assert.Nil(t, InsertRelations("n", "one", relations[0]))
+	assert.Nil(t, Store("n"))
+	assert.Nil(t, InsertRelations("n", "one", relations))
 
 }
 
