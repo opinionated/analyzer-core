@@ -1,101 +1,112 @@
-package dbInterface
+// Package relationDB is used to find relations between articles
+package relationDB
 
 import (
 	"database/sql"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
-	"github.com/satori/go.uuid"
+	// for driver
 	_ "gopkg.in/cq.v1"
 )
 
-// keyQuery and taxQuery store the same information, differentiation is so search-field can be implicit
-type KeyQuery struct {
-	Text      string
-	Sentiment string //ignoring for now
-	Threshold float32
-}
-
-type TaxQuery struct {
-	Name      string
-	Sentiment string //ignoring for now
-	Threshold float32
-}
-
+// DBKeyword comment
 type DBKeyword struct {
 	Text      string  `json:"text"`
-	Sentiment string  `json:"sentiment,omitempty"`
 	Relevance float32 `json:"relevance,omitempty"`
 }
 
-type DBTaxonomy struct {
-	Label     string  `json:"label"`
-	Sentiment string  `json:"sentiment"`
-	Score     float32 `json:"score,omitempty"`
-}
-
+// ArticleInfo comment
 type ArticleInfo struct {
-	ID         uuid.UUID    `json:"ID,omitempty"`
-	Author     string       `json:"Author,omitempty"`
-	Body       string       `json:"BodyFilename"`
-	Keywords   []DBKeyword  `json:"Keywords,omitempty"`
-	Taxonomies []DBTaxonomy `json:"Taxonomies,omitempty"`
+	// assumes that this is universally unique
+	Identifier string `json:"ArticleIdentifier"`
 }
 
-//Signifies error at certain id
+// IDError when bad id
 type IDError struct {
 	uuid    string
 	message string
 }
 
+// Error from IDError
 func (e *IDError) Error() string {
 	return fmt.Sprintf("%s - %s", e.uuid, e.message)
 }
 
-//Initialize ?figure out what goes here
-func Init() error {
+// private database for all the requests
+var db *sql.DB
+
+// Open a connection to the DB if one isn't already open
+// you should turn off auth by settind dbms.security.auth_enabled = false
+// in neo4j/data/dbms/auth
+func Open(where string) error {
+	if db != nil {
+		return nil
+	}
+
+	tmp, err := sql.Open("neo4j-cypher", where)
+	if err != nil {
+		return err
+	}
+
+	db = tmp
 	return nil
 }
 
-//Don't need the driver for this, just using normal SQL calls
-func Store(info ArticleInfo) error {
-	//create uuid for article
-	info.ID = uuid.NewV4()
-
-	//connect to database
-	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
-	if err != nil {
-		return err //oh no!
-	}
-	defer db.Close()
-
-	//create query, use prepared statements
-	stmt, err := db.Prepare(`
-		UNWIND {{0}} as article
-		MERGE (a:Article {id:article.ID, body:article.Body, author:article.Body})
-		FOREACH (kw IN article.Keywords |
-		   MERGE (k:Keyword {text:kw.Name})
-		   MERGE (k)-[:KEYWORD_OF {sentiment:kw.Sentiment, relevance:kw.Relevance}]->(a)
-		   MERGE (t:Taxonomy {label:kw.Label})
-		   MERGE (t)-[:TAXONOMY_OF {sentiment:kw.Sentiment, score:kw.Score}]->(a)
-		)
-	`)
-	if err != nil {
-		return err //oops
-	}
-	//defer stmt.close()
-
-	//pass in the json object to be unwound and execute the statement
-	_, err2 := stmt.Exec(info)
-
-	//no error = nil
-	return err2
+// Close the db
+func Close() error {
+	return db.Close()
 }
 
-/**
- * @param id UUID, article id
- * @return error, in case of error
- * Remove article w/ id from database
- */
+// Store an article in the DB
+// articleID should be a uuid for the article
+// goes and checks that this is actually a uuid to prevent double inserts
+func Store(articleID string) error {
+	if info, err := GetByUUID(articleID); err != nil {
+		return err
+	} else if info.Identifier != "" {
+		return fmt.Errorf("bad uuid %s", err.Error())
+	}
+	stmt, err := db.Prepare(`create (:Article {Identifier:{0}})`)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(articleID)
+	return err
+}
+
+// GetByUUID gets an article by its uuid
+func GetByUUID(articleID string) (ArticleInfo, error) {
+	stmt, err := db.Prepare(`match (n {Identifier: {0}}) return n`)
+	if err != nil {
+		return ArticleInfo{}, err
+	}
+
+	rows, err := stmt.Query(articleID)
+	if err != nil {
+		return ArticleInfo{}, fmt.Errorf("problem getting by uuid: %s", err.Error())
+	}
+	info := ArticleInfo{}
+	err = rows.Scan(&info)
+	if rows.Next() {
+		return ArticleInfo{}, fmt.Errorf("uuid not unique")
+	}
+	return info, nil
+}
+
+// clear deletes all nodes from teh db, used most for testing
+func clear() error {
+	stmt, err := db.Prepare("match n delete n")
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec()
+	return err
+}
+
+/*
+// Remove something by uuid
 func Remove(id uuid.UUID) error {
 
 	//connect to database
@@ -125,9 +136,7 @@ func Remove(id uuid.UUID) error {
 
 }
 
-/**
- * DB reset, for testing purposes !!!DONT USE UNLESS YOU'RE SERIOUSLY ARE SURE ABOUT THIS!!!
- */
+
 func RemoveAll() error {
 
 	//connect to database
@@ -156,12 +165,7 @@ func RemoveAll() error {
 
 }
 
-/**
- * @param id UUID, article id
- * @return ArticleInfo, first article with id {id}.
- * @return error, in case of error, or multiple articles listed under id
- * Gets article w/ id from database
- */
+
 func Get(id uuid.UUID) (ArticleInfo, error) {
 
 	//connect to database
@@ -219,12 +223,7 @@ func Get(id uuid.UUID) (ArticleInfo, error) {
 
 }
 
-/**
- * @param keyword Keyword, keyword
- * @return []UUID, set of articles ids with keywords
- * @return error, in case of error
- * Gets article ids w/ keyword from database
- */
+
 func SearchByKeyword(keyword KeyQuery) ([]uuid.UUID, error) {
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
@@ -277,12 +276,6 @@ func SearchByKeyword(keyword KeyQuery) ([]uuid.UUID, error) {
 	return set, err
 }
 
-/**
- * @param taxonomy DBTaxonomy, taxonomy
- * @return []UUID, set of articles with keywords
- * @return error, in case of error
- * Gets article ids w/ keyword from database
- */
 func SearchByTaxonomy(taxonomy TaxQuery) ([]uuid.UUID, error) {
 	//connect to database
 	db, err := sql.Open("neo4j-cypher", "localhost:7474") //port is up for debate
@@ -334,3 +327,4 @@ func SearchByTaxonomy(taxonomy TaxQuery) ([]uuid.UUID, error) {
 	//no error = nil
 	return set, err
 }
+*/
