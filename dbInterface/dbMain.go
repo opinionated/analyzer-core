@@ -2,11 +2,13 @@
 package relationDB
 
 import (
-	"database/sql"
-	//"encoding/json"
+	//	"database/sql"
+	//	"encoding/json"
 	"fmt"
 	// for driver
 	_ "gopkg.in/cq.v1"
+	// use neoism
+	"gopkg.in/jmcvetta/neoism.v1"
 )
 
 // DBKeyword comment
@@ -18,7 +20,7 @@ type DBKeyword struct {
 // ArticleInfo comment
 type ArticleInfo struct {
 	// assumes that this is universally unique
-	Identifier string `json:"ArticleIdentifier"`
+	Identifier string `json:"n.Identifier"`
 }
 
 // IDError when bad id
@@ -33,7 +35,8 @@ func (e *IDError) Error() string {
 }
 
 // private database for all the requests
-var db *sql.DB
+//var db *sql.DB
+var db *neoism.Database
 
 // Open a connection to the DB if one isn't already open
 // you should turn off auth by settind dbms.security.auth_enabled = false
@@ -43,7 +46,8 @@ func Open(where string) error {
 		return nil
 	}
 
-	tmp, err := sql.Open("neo4j-cypher", where)
+	//`tmp, err := sql.Open("neo4j-cypher", where)
+	tmp, err := neoism.Connect(where)
 	if err != nil {
 		return err
 	}
@@ -54,7 +58,8 @@ func Open(where string) error {
 
 // Close the db
 func Close() error {
-	return db.Close()
+	//`return db.Close()
+	return nil
 }
 
 // Store an article in the DB
@@ -62,47 +67,123 @@ func Close() error {
 // goes and checks that this is actually a uuid to prevent double inserts
 func Store(articleID string) error {
 	if info, err := GetByUUID(articleID); err != nil {
-		return err
+		return fmt.Errorf("bad uuid: %s", err.Error())
 	} else if info.Identifier != "" {
-		return fmt.Errorf("bad uuid %s", err.Error())
-	}
-	stmt, err := db.Prepare(`create (:Article {Identifier:{0}})`)
-	if err != nil {
-		return err
+		return fmt.Errorf("uuid not unique")
 	}
 
-	_, err = stmt.Exec(articleID)
-	return err
+	cq := neoism.CypherQuery{
+		Statement:  `create (:Article {Identifier:{Identifier}})`,
+		Parameters: neoism.Props{"Identifier": articleID},
+		Result:     nil,
+	}
+	return db.Cypher(&cq)
+
+	/*
+		stmt, err := db.Prepare(`create (:Article {Identifier:{0}})`)
+		if err != nil {
+			return err
+		}
+
+		_, err = stmt.Exec(articleID)
+		return err
+	*/
 }
 
 // GetByUUID gets an article by its uuid
 func GetByUUID(articleID string) (ArticleInfo, error) {
-	stmt, err := db.Prepare(`match (n {Identifier: {0}}) return n`)
+	result := []ArticleInfo{}
+
+	cq := neoism.CypherQuery{
+		Statement:  `match (n {Identifier: {Identifier} }) return n, n.Identifier`,
+		Parameters: neoism.Props{"Identifier": articleID},
+		Result:     &result,
+	}
+
+	err := db.Cypher(&cq)
 	if err != nil {
 		return ArticleInfo{}, err
 	}
 
-	rows, err := stmt.Query(articleID)
-	if err != nil {
-		return ArticleInfo{}, fmt.Errorf("problem getting by uuid: %s", err.Error())
+	fmt.Println(result)
+
+	if len(result) > 1 {
+		return result[0], fmt.Errorf("too many articles returned!\n")
 	}
-	info := ArticleInfo{}
-	err = rows.Scan(&info)
-	if rows.Next() {
-		return ArticleInfo{}, fmt.Errorf("uuid not unique")
+	if len(result) > 0 {
+		return result[0], nil
 	}
-	return info, nil
+
+	// nothing
+	return ArticleInfo{}, nil
+
+	/*
+		stmt, err := db.Prepare(`match (n {Identifier: {0}}) return n`)
+		if err != nil {
+			return ArticleInfo{}, err
+		}
+
+		rows, err := stmt.Query(articleID)
+		if err != nil {
+			return ArticleInfo{}, fmt.Errorf("problem getting by uuid: %s", err.Error())
+		}
+		info := ArticleInfo{}
+		err = rows.Scan(&info)
+		if rows.Next() {
+			return ArticleInfo{}, fmt.Errorf("uuid not unique")
+		}
+		return info, nil
+	*/
+}
+
+// InsertRelations inserts an array of relations named by keyword
+// assumes that values has Text, Relevance
+func InsertRelations(articleID string, keyword string, values interface{}) error {
+	/*
+		stmt, err := db.Prepare(`
+		foreach (edge in {0} |
+			merge( :Node {txt: edge.Text})
+		)
+		`)
+		if err != nil {
+			return err
+		}
+
+		//rows, err := stmt.Query(articleID, keyword, values)
+		b, err := json.Marshal(values)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("b:", string(b))
+		//rows, err := stmt.Query(string(b))
+		rows, err := stmt.Query(values)
+		if err != nil {
+			return err
+		} else if rows.Err() != nil {
+			return rows.Err()
+		}
+
+		for rows.Next() {
+			data := make(map[string]interface{})
+
+			if err = rows.Scan(&data); err != nil {
+				return fmt.Errorf("oh nose %s", err.Error())
+			}
+			fmt.Println("data:", data)
+		}
+	*/
+	return nil
 }
 
 // clear deletes all nodes from teh db, used most for testing
 func clear() error {
-	stmt, err := db.Prepare("match n delete n")
-	if err != nil {
-		return err
+	cq := neoism.CypherQuery{
+		Statement: "match n delete n",
 	}
 
-	_, err = stmt.Exec()
-	return err
+	return db.Cypher(&cq)
+
 }
 
 /*

@@ -10,6 +10,30 @@ func finishTest() {
 	Close()
 }
 
+type Relation struct {
+	Text      string `json:"Text"`
+	Relevance float32
+}
+
+func TestMultiInsert(t *testing.T) {
+	assert.Nil(t, Open("http://localhost:7474/"))
+	//defer finishTest()
+	clear()
+
+	var _ = []string{
+		"z", "1.0",
+	}
+	var relations = []Relation{
+		{"x", 1.0},
+	}
+
+	//assert.Nil(t, Store("n"))
+	//assert.Nil(t, InsertRelations("n", "one", arr))
+
+	assert.Nil(t, InsertRelations("n", "one", relations[0]))
+
+}
+
 func TestInsert(t *testing.T) {
 	// hits get by uuid and insert
 	assert.Nil(t, Open("http://localhost:7474/"))
