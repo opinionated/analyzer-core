@@ -1,5 +1,27 @@
-// Package relationDB is used to find relations between articles
+// Package relationDB is used to find relations between articles.
 package relationDB
+
+// Graph structure:
+//
+// article nodes contain a neo4j id and a uuid for locating the actual file.
+// articles are related to metadata nodes through weighted edges. Articles
+// are related to each other through metadata
+//
+// metadata nodes are labelled with the kind of metadata that they contain, eg "taxonomy"
+// the data for a metadata node is stored in the Text member
+//
+// weighted, undirected edges connect articles to metadata. Now they
+// reflect the relevance of a piece of metadata to an article. Edge weights are
+// stored in the Relevance member
+//
+// a relation between two articles might look like (in psuedo neo4j querry language):
+//
+// (:Article "usa")-[2.0]       [5.0]-(:Article "#1 country")
+//                       \     /
+//                   (:Taxonomy "merica")
+//                       /
+// (:Article "bad")-[0.5]
+//
 
 import (
 	"fmt"
