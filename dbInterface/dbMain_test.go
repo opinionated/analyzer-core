@@ -67,23 +67,23 @@ func setupTestGraph(t *testing.T) {
 func TestShortestPath(t *testing.T) {
 	assert.Nil(t, Open("http://localhost:7474/"))
 	setupTestGraph(t)
-	defer finishTest()
+	//defer finishTest()
 
 	info, err := GetByUUID("gunsBad")
 	assert.Nil(t, err)
 	assert.Equal(t, "gunsBad", info.Identifier)
 
-	score, count, err := StrengthBetween("gunsRgreat", "obama hitler", "asdf")
+	score, count, err := StrengthBetween("gunsRgreat", "obama hitler", "keywords")
 	assert.Nil(t, err)
 	assert.EqualValues(t, 13.0, score)
 	assert.EqualValues(t, 3, count)
 
-	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "asdf")
+	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "keywords")
 	assert.Nil(t, err)
 	assert.EqualValues(t, 0.0, score)
 	assert.EqualValues(t, 0, count)
 
-	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "others")
+	score, count, err = StrengthBetween("gunsRgreat", "obama hitler", "taxonomy")
 	assert.Nil(t, err)
 	assert.EqualValues(t, 0.0, score)
 	assert.EqualValues(t, 0, count)

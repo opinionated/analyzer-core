@@ -27,12 +27,13 @@ import (
 	"fmt"
 	// use neoism
 	"gopkg.in/jmcvetta/neoism.v1"
+	"strings"
 )
 
 // DBKeyword comment
 type DBKeyword struct {
-	Text      string  `json:"text"`
-	Relevance float32 `json:"relevance,omitempty"`
+	Relevance float32 `json:"Relevance"`
+	Text      string  `json:"Text"`
 }
 
 // ArticleInfo comment
@@ -131,15 +132,15 @@ func StrengthBetween(startID string, endID string, label string) (float32, int, 
 		Count int     `json:"count"`
 	}{}
 
-	cq := neoism.CypherQuery{
-		Statement: `
-	with {label} as MetadataType
+	statementStr := `
 	match (start:Article {Identifier: {startID}}),(end:Article {Identifier: {endID}}) 
 	match p = (start)-[rel_s]-(mid:MetadataType)-[rel_e]-(end) with collect(p) as paths
 
 	return reduce(o_s = 0, path in paths 
 	| o_s + reduce(s = 0, rel in relationships(path) | s + rel.Relevance)) as total, length(paths) as count
-						`,
+						`
+	cq := neoism.CypherQuery{
+		Statement:  fixLabel(statementStr, label),
 		Parameters: neoism.Props{"startID": startID, "endID": endID, "label": label},
 		Result:     &result,
 	}
@@ -158,21 +159,25 @@ func StrengthBetween(startID string, endID string, label string) (float32, int, 
 // assumes that values has Text, Relevance
 func InsertRelations(articleID string, keyword string, values interface{}) error {
 
-	cq := neoism.CypherQuery{
-		Statement: `
-			with {Leyword} as MetadataType
+	statementStr := `
 			match (start:Article {Identifier: {articleID}})
 			unwind {relations} as relations
 			foreach (relation in relations | 
 			merge (end:MetadataType {Text: relation.Text}) 
 			create unique (start)-[:Relation {Relevance: relation.Relevance}]->(end)
 			)
-	`,
+	`
+	cq := neoism.CypherQuery{
+		Statement:  fixLabel(statementStr, keyword),
 		Parameters: neoism.Props{"articleID": articleID, "Leyword": keyword, "relations": values},
 	}
 
 	err := db.Cypher(&cq)
 	return err
+}
+
+func fixLabel(statement string, label string) string {
+	return strings.Replace(statement, "MetadataType", label, 1)
 }
 
 // clear deletes all nodes from teh db, used most for testing
