@@ -67,26 +67,31 @@ func setupTestGraph(t *testing.T) {
 func TestShortestPath(t *testing.T) {
 	assert.Nil(t, Open("http://localhost:7474/"))
 	setupTestGraph(t)
+	defer finishTest()
 
 	info, err := GetByUUID("gunsBad")
 	assert.Nil(t, err)
 	assert.Equal(t, "gunsBad", info.Identifier)
 
-	score, count, err := StrengthBetween("gunsRgreat", "obama hitler", "keywords")
+	score, count, err := StrengthBetween("gunsRgreat", "obama hitler", "asdf")
 	assert.Nil(t, err)
 	assert.EqualValues(t, 13.0, score)
 	assert.EqualValues(t, 3, count)
 
-	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "keywords")
+	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "asdf")
 	assert.Nil(t, err)
 	assert.EqualValues(t, 0.0, score)
 	assert.EqualValues(t, 0, count)
 
+	score, count, err = StrengthBetween("gunsRgreat", "disconnected from everything", "others")
+	assert.Nil(t, err)
+	assert.EqualValues(t, 0.0, score)
+	assert.EqualValues(t, 0, count)
 }
 
 func TestMultiInsert(t *testing.T) {
 	assert.Nil(t, Open("http://localhost:7474/"))
-	//defer finishTest()
+	defer finishTest()
 	assert.Nil(t, clear())
 
 	var _ = []string{
@@ -98,12 +103,13 @@ func TestMultiInsert(t *testing.T) {
 	}
 
 	assert.Nil(t, Store("n"))
-	assert.Nil(t, InsertRelations("n", "one", relations))
+	assert.Nil(t, InsertRelations("n", "keywords", relations))
 }
 
 func TestInsert(t *testing.T) {
 	// hits get by uuid and insert
 	assert.Nil(t, Open("http://localhost:7474/"))
+	assert.Nil(t, clear())
 	defer finishTest()
 
 	var tests = []struct {

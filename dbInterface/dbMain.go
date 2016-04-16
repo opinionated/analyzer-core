@@ -111,8 +111,6 @@ func GetByUUID(articleID string) (ArticleInfo, error) {
 		return ArticleInfo{}, err
 	}
 
-	fmt.Println(result)
-
 	if len(result) > 1 {
 		return result[0], fmt.Errorf("too many articles returned!\n")
 	}
@@ -135,8 +133,9 @@ func StrengthBetween(startID string, endID string, label string) (float32, int, 
 
 	cq := neoism.CypherQuery{
 		Statement: `
+	with {label} as MetadataType
 	match (start:Article {Identifier: {startID}}),(end:Article {Identifier: {endID}}) 
-	match p = (start)-[rel_s]-(mid:Keyword)-[rel_e]-(end) with collect(p) as paths
+	match p = (start)-[rel_s]-(mid:MetadataType)-[rel_e]-(end) with collect(p) as paths
 
 	return reduce(o_s = 0, path in paths 
 	| o_s + reduce(s = 0, rel in relationships(path) | s + rel.Relevance)) as total, length(paths) as count
@@ -144,17 +143,7 @@ func StrengthBetween(startID string, endID string, label string) (float32, int, 
 		Parameters: neoism.Props{"startID": startID, "endID": endID, "label": label},
 		Result:     &result,
 	}
-	/*match (start:Article {Identifier: {startID}}),(end:Article {Identifier: {endID}})
-	match p = (start)-[:Keyword]-(mid:Keyword)-[:Keyword]-(end) with collect(p) as paths
-	return reduce(o_s = 0, path in paths | o_s +
-	  reduce(s = 0, rel in relationships(path) | s + rel.Relevance)) as total,
-		count(paths) as count
-	*/
 
-	//match (start:Article {Identifier: {startID}})-[rel_s]-(mid:Keyword)-[rel_e]-(end:Article {Identifier: {endID}})
-	//return mid, mid.Text, rel_s.Relation, start.Identifier
-
-	//where rel_s.Relevance > 0.5 and rel_e.Relevance > 0.5
 	err := db.Cypher(&cq)
 	if err != nil {
 		return 0, 0, err
@@ -171,17 +160,17 @@ func InsertRelations(articleID string, keyword string, values interface{}) error
 
 	cq := neoism.CypherQuery{
 		Statement: `
+			with {Leyword} as MetadataType
 			match (start:Article {Identifier: {articleID}})
 			unwind {relations} as relations
 			foreach (relation in relations | 
-			merge (end:Keyword {Text: relation.Text})
+			merge (end:MetadataType {Text: relation.Text}) 
 			create unique (start)-[:Relation {Relevance: relation.Relevance}]->(end)
 			)
 	`,
-		Parameters: neoism.Props{"articleID": articleID, "keyword": keyword, "relations": values},
+		Parameters: neoism.Props{"articleID": articleID, "Leyword": keyword, "relations": values},
 	}
 
-	//create unique (start)-[:Relation {Relevance: relation.Relevance}]-(:Keyword {Text: relation.Text})
 	err := db.Cypher(&cq)
 	return err
 }
