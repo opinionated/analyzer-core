@@ -54,7 +54,6 @@ func (e *IDError) Error() string {
 }
 
 // private database for all the requests
-//var db *sql.DB
 var db *neoism.Database
 
 // Open a connection to the DB if one isn't already open
@@ -98,6 +97,7 @@ func Store(articleID string) error {
 }
 
 // GetByUUID gets an article by its uuid
+// ArticleInfo empty if no such article exists
 func GetByUUID(articleID string) (ArticleInfo, error) {
 	result := []ArticleInfo{}
 
@@ -126,6 +126,8 @@ func GetByUUID(articleID string) (ArticleInfo, error) {
 
 // StrengthBetween find how closely two nodes are related by some label
 // finds all paths between and sums up the output
+// returns "flow" or sum of relevances between and how many common keyword or edges
+// they share
 func StrengthBetween(startID string, endID string, label string) (float32, int, error) {
 	result := []struct {
 		Score float32 `json:"total"`
