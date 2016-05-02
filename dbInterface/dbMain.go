@@ -154,6 +154,7 @@ func StrengthBetween(startID string, endID string, label string) (float32, int, 
 	if len(result) != 1 {
 		return 0, 0, fmt.Errorf("result is too long")
 	}
+
 	return result[0].Score, result[0].Count, err
 }
 
@@ -193,4 +194,91 @@ func clear() error {
 	return db.Cypher(&cq)
 }
 
-// TODO(@max): get by type ie (n)-[relevance > thresh]-(:{Keyword} {Text = {text} })
+// GetAll returns all the articles
+func GetAll() ([]string, error) {
+	result := []struct {
+		Article string `json:"article"`
+	}{}
+
+	statementStr := `
+		match (start:Article) return start.Identifier as article 
+		`
+	cq := neoism.CypherQuery{
+		Statement: statementStr,
+		Result:    &result,
+	}
+
+	err := db.Cypher(&cq)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]string, len(result))
+	for i := range result {
+		ret[i] = result[i].Article
+	}
+
+	return ret, nil
+
+}
+
+// GetRelations gets the metadata types comming out of an article.
+func GetRelations(article string, metadataType string, thresh float64) ([]string, error) {
+	result := []struct {
+		Identifier string `json:"metadata"`
+	}{}
+
+	statementStr := `
+		match (start:Article)-[r]-(key)
+		where r.Relevance > {thresh} and start.Identifier={article} 
+		return key.Text as metadata 
+		`
+	cq := neoism.CypherQuery{
+		Statement:  statementStr,
+		Parameters: neoism.Props{"thresh": thresh, "article": article},
+		Result:     &result,
+	}
+
+	err := db.Cypher(&cq)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]string, len(result))
+	for i := range result {
+		ret[i] = result[i].Identifier
+	}
+
+	return ret, nil
+
+}
+
+// GetRelationsInv gets articles related to some metadata item.
+func GetRelationsInv(keyword string, metadataType string, thresh float64) ([]string, error) {
+	result := []struct {
+		Identifier string `json:"Identifier"`
+	}{}
+
+	statementStr := `
+		match (start:Article)-[r]-(key)
+		where r.Relevance > {thresh} and key.Text={text} 
+		return start.Identifier as Identifier
+		`
+	cq := neoism.CypherQuery{
+		Statement:  statementStr,
+		Parameters: neoism.Props{"thresh": thresh, "text": keyword},
+		Result:     &result,
+	}
+
+	err := db.Cypher(&cq)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]string, len(result))
+	for i := range result {
+		ret[i] = result[i].Identifier
+	}
+
+	return ret, nil
+}

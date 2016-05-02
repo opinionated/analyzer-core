@@ -65,6 +65,7 @@ func setupTestGraph(t *testing.T) {
 }
 
 func TestShortestPath(t *testing.T) {
+	t.Skip("explicitly enable, this will clear")
 	assert.Nil(t, Open("http://localhost:7474/"))
 	setupTestGraph(t)
 	//defer finishTest()
@@ -90,6 +91,7 @@ func TestShortestPath(t *testing.T) {
 }
 
 func TestMultiInsert(t *testing.T) {
+	t.Skip("explicitly enable, this will clear")
 	assert.Nil(t, Open("http://localhost:7474/"))
 	defer finishTest()
 	assert.Nil(t, clear())
@@ -107,6 +109,7 @@ func TestMultiInsert(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
+	t.Skip("explicitly enable, this will clear")
 	// hits get by uuid and insert
 	assert.Nil(t, Open("http://localhost:7474/"))
 	assert.Nil(t, clear())
@@ -128,4 +131,13 @@ func TestInsert(t *testing.T) {
 			assert.Equal(t, errStr, err.Error())
 		}
 	}
+}
+
+func TestInvRelations(t *testing.T) {
+	assert.Nil(t, Open("http://localhost:7474/"))
+	articles, err := GetRelationsInv("Mr. Obama", "", 0.5)
+
+	assert.Nil(t, err)
+	assert.Nil(t, articles)
+	assert.True(t, len(articles) > 2)
 }
